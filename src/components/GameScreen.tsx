@@ -12,6 +12,7 @@ import {
 import RouteDisplay from './RouteDisplay';
 import OptionsList from './OptionsList';
 import AttemptHistory from './AttemptHistory';
+import HowToPlay from './HowToPlay';
 
 interface GameScreenProps {
   puzzle: Puzzle;
@@ -45,6 +46,7 @@ export default function GameScreen({
   const [selectedBlank, setSelectedBlank] = useState<number | null>(0);
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [shake, setShake] = useState(false);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
 
   // Reset when difficulty/puzzle changes (e.g. on remount).
   useEffect(() => {
@@ -172,7 +174,15 @@ export default function GameScreen({
             {difficulty} · {attemptsLeft} {attemptsLeft === 1 ? 'try' : 'tries'} left
           </p>
         </div>
-        <div className="w-12" />
+        <button
+          type="button"
+          onClick={() => setShowHowToPlay(true)}
+          aria-label="How to play"
+          title="How to play"
+          className="w-9 h-9 rounded-full bg-slate-900/60 ring-1 ring-white/10 text-slate-300 hover:bg-slate-800/70 hover:text-slate-100 flex items-center justify-center text-base font-semibold"
+        >
+          ?
+        </button>
       </header>
 
       <section
@@ -228,6 +238,11 @@ export default function GameScreen({
           </button>
         </div>
       </div>
+
+      <HowToPlay
+        open={showHowToPlay}
+        onClose={() => setShowHowToPlay(false)}
+      />
     </div>
   );
 }

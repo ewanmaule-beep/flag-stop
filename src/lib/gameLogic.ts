@@ -46,6 +46,13 @@ export function getBlankIndexes(puzzle: Puzzle, difficulty: Difficulty): number[
     .filter((i) => !visible.has(i));
 }
 
+/** Total number of country choices shown in the picker for each difficulty. */
+const OPTION_COUNT: Record<Difficulty, number> = {
+  easy: 6,
+  medium: 8,
+  hard: 12,
+};
+
 /** Build the country-picker options for a given difficulty. */
 export function getOptions(
   puzzle: Puzzle,
@@ -53,14 +60,21 @@ export function getOptions(
   blankIndexes: number[]
 ): string[] {
   const answers = blankIndexes.map((i) => puzzle.route[i]);
-  let target: number;
-  if (difficulty === 'easy') target = Math.min(answers.length + 3, 7);
-  else if (difficulty === 'medium') target = Math.min(answers.length + 5, 10);
-  else target = Math.min(answers.length + 7, 12);
+  // Always at least cover the answers — otherwise the puzzle is unsolvable.
+  const target = Math.max(OPTION_COUNT[difficulty], answers.length);
 
-  const pool = Array.from(new Set([...answers, ...puzzle.decoys]));
-  const trimmed = pool.slice(0, Math.max(target, answers.length));
-  return seededShuffle(trimmed, puzzle.id * 31 + difficulty.length);
+  // Answers come first so they're guaranteed in the pool, then top up with
+  // decoys until we reach the target count.
+  const pool: string[] = [];
+  const seen = new Set<string>();
+  for (const c of [...answers, ...puzzle.decoys]) {
+    if (!seen.has(c)) {
+      pool.push(c);
+      seen.add(c);
+    }
+    if (pool.length >= target) break;
+  }
+  return seededShuffle(pool, puzzle.id * 31 + difficulty.length);
 }
 
 /** Wordle-style feedback: green = correct slot, yellow = wrong slot, grey = absent. */

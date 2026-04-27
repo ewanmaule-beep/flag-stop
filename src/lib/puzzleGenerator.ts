@@ -101,23 +101,47 @@ export function generatePuzzle(seed: number): Puzzle {
     route = ['Portugal', 'Spain', 'France', 'Germany', 'Poland'];
   }
 
-  // Decoys: shuffle one-hop neighbours of route stops that aren't on the route.
+  // Decoys: build a pool of plausible-looking countries that aren't on the
+  // route. Start with one-hop neighbours of route stops, expand to two-hop
+  // neighbours if needed, then top up with random others. We aim for 10 so
+  // Hard difficulty (12 options total) always has enough material to draw on.
   const onRoute = new Set(route);
-  const neighbourPool = new Set<string>();
+  const TARGET_DECOYS = 10;
+
+  const oneHop = new Set<string>();
   for (const c of route) {
     for (const n of bordersOf(c)) {
-      if (!onRoute.has(n)) neighbourPool.add(n);
+      if (!onRoute.has(n)) oneHop.add(n);
     }
   }
-  let decoys = shuffle(rand, Array.from(neighbourPool)).slice(0, 4);
 
-  // If route ate most of the local neighbourhood, top up with random others.
-  if (decoys.length < 4) {
+  let decoys = shuffle(rand, Array.from(oneHop)).slice(0, TARGET_DECOYS);
+
+  // Expand to second-hop neighbours (neighbours-of-neighbours) if we still
+  // don't have enough.
+  if (decoys.length < TARGET_DECOYS) {
+    const decoySet = new Set(decoys);
+    const twoHop = new Set<string>();
+    for (const c of oneHop) {
+      for (const n of bordersOf(c)) {
+        if (!onRoute.has(n) && !decoySet.has(n)) twoHop.add(n);
+      }
+    }
+    const extra = shuffle(rand, Array.from(twoHop)).slice(
+      0,
+      TARGET_DECOYS - decoys.length
+    );
+    decoys = decoys.concat(extra);
+  }
+
+  // Last-resort top-up with random other startable countries.
+  if (decoys.length < TARGET_DECOYS) {
+    const decoySet = new Set(decoys);
     const filler = shuffle(
       rand,
-      STARTABLE_COUNTRIES.filter((c) => !onRoute.has(c) && !decoys.includes(c))
+      STARTABLE_COUNTRIES.filter((c) => !onRoute.has(c) && !decoySet.has(c))
     );
-    decoys = decoys.concat(filler.slice(0, 4 - decoys.length));
+    decoys = decoys.concat(filler.slice(0, TARGET_DECOYS - decoys.length));
   }
 
   // Visible indexes: always first and last. We don't preset middle reveals

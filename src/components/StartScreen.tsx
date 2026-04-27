@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import type { Difficulty, Puzzle } from '../types';
 import Flag from './Flag';
+import HowToPlay from './HowToPlay';
 
 interface StartScreenProps {
   puzzle: Puzzle;
@@ -30,6 +32,7 @@ export default function StartScreen({
   // We don't want difficulty selection to leak info about today's puzzle.
   const lastIdx = puzzle.route.length - 1;
   const totalBlanks = puzzle.route.length - 2;
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
 
   return (
     <div className="flex flex-col gap-8 px-5 py-8 max-w-md mx-auto w-full">
@@ -40,6 +43,14 @@ export default function StartScreen({
         <p className="mt-2 text-slate-300 text-sm">
           A daily route through Europe. Five tries. Same puzzle for everyone.
         </p>
+        <button
+          type="button"
+          onClick={() => setShowHowToPlay(true)}
+          className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-slate-900/60 ring-1 ring-white/10 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800/70"
+        >
+          <span aria-hidden="true">?</span>
+          <span>How to play</span>
+        </button>
       </header>
 
       <section className="rounded-2xl bg-slate-900/60 ring-1 ring-white/10 p-5 backdrop-blur">
@@ -132,6 +143,11 @@ export default function StartScreen({
       <p className="text-center text-xs text-slate-500">
         New route every day · streak preserved if you play daily
       </p>
+
+      <HowToPlay
+        open={showHowToPlay}
+        onClose={() => setShowHowToPlay(false)}
+      />
     </div>
   );
 }
