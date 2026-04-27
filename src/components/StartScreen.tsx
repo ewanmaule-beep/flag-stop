@@ -11,6 +11,7 @@ interface StartScreenProps {
   alreadyPlayed: boolean;
   lastResult: 'won' | 'lost' | null;
   onViewResult: () => void;
+  onPrivacy: () => void;
 }
 
 const DIFFICULTIES: { id: Difficulty; label: string; hint: string }[] = [
@@ -27,6 +28,7 @@ export default function StartScreen({
   alreadyPlayed,
   lastResult,
   onViewResult,
+  onPrivacy,
 }: StartScreenProps) {
   // Teaser is always start + end only, regardless of difficulty.
   // We don't want difficulty selection to leak info about today's puzzle.
@@ -143,6 +145,14 @@ export default function StartScreen({
       <p className="text-center text-xs text-slate-500">
         New route every day · streak preserved if you play daily
       </p>
+
+      <button
+        type="button"
+        onClick={onPrivacy}
+        className="text-center text-xs text-slate-600 underline hover:text-slate-400"
+      >
+        Privacy Policy
+      </button>
 
       <HowToPlay
         open={showHowToPlay}

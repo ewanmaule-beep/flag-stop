@@ -8,9 +8,9 @@ const SQUARE: Record<'green' | 'yellow' | 'grey', string> = {
 };
 
 const TAG: Record<Difficulty, string> = {
-  easy: 'E',
-  medium: 'M',
-  hard: 'H',
+  easy: 'Easy',
+  medium: 'Medium',
+  hard: 'Hard',
 };
 
 /**
@@ -29,7 +29,7 @@ export function buildShareText(args: {
 }): string {
   const { dateKey, attempts, won, difficulty } = args;
   const score = won ? `${attempts.length}/${MAX_ATTEMPTS}` : `X/${MAX_ATTEMPTS}`;
-  const header = `Flag Stop · ${dateKey} · ${score} · ${TAG[difficulty]}`;
+  const header = `Flag Stop · ${dateKey} · ${score} · ${TAG[difficulty]} mode`;
   const grid = attempts
     .map((a) => a.feedback.map((f) => SQUARE[f]).join(''))
     .join('\n');

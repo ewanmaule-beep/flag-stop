@@ -10,6 +10,7 @@ import {
 import StartScreen from './components/StartScreen';
 import GameScreen from './components/GameScreen';
 import ResultScreen from './components/ResultScreen';
+import PrivacyPolicy from './components/PrivacyPolicy';
 
 export default function App() {
   const dateKey = useMemo(() => getTodayKey(), []);
@@ -92,6 +93,7 @@ export default function App() {
           alreadyPlayed={alreadyPlayedToday}
           lastResult={lastResult}
           onViewResult={handleViewResult}
+          onPrivacy={() => setScreen('privacy')}
         />
       )}
       {screen === 'playing' && (
@@ -113,6 +115,9 @@ export default function App() {
           stats={stats}
           onBackToStart={backToStart}
         />
+      )}
+      {screen === 'privacy' && (
+        <PrivacyPolicy onBack={() => setScreen('start')} />
       )}
     </div>
   );

@@ -16,4 +16,4 @@ export interface Attempt {
   feedback: Feedback[];   // length = number of blanks
 }
 
-export type Screen = 'start' | 'playing' | 'result';
+export type Screen = 'start' | 'playing' | 'result' | 'privacy';
