@@ -199,6 +199,7 @@ export default function GameScreen({
           selectedBlank={selectedBlank}
           lockedFeedback={lockedFeedback}
           onSelectBlank={selectBlank}
+          showLabels={difficulty === 'easy'}
         />
         {difficulty === 'easy' && (
           <p className="mt-3 text-center text-xs text-slate-400">

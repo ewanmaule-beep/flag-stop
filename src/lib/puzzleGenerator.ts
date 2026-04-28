@@ -1,11 +1,11 @@
 import { ADJACENCY, bordersOf } from '../data/borders';
-import { COORDINATES } from '../data/coordinates';
+import { WORLD_COORDINATES } from '../data/worldCoordinates';
 import type { Puzzle } from '../types';
 
 /**
  * Daily puzzle generator.
  *
- * We do a seeded random walk over the European adjacency graph, picking a
+ * We do a seeded random walk over the worldwide adjacency graph, picking a
  * random start country and a random unused neighbour at each step until we
  * hit the target length. Decoys are pulled from the one-hop neighbourhood of
  * the route (so they look plausible) and topped up with random other
@@ -42,7 +42,7 @@ function shuffle<T>(rand: () => number, list: readonly T[]): T[] {
 
 /** All country names that appear in the adjacency graph and have coordinates. */
 const STARTABLE_COUNTRIES: string[] = Object.keys(ADJACENCY).filter(
-  (c) => COORDINATES[c] && (ADJACENCY[c]?.length ?? 0) > 0
+  (c) => WORLD_COORDINATES[c] && (ADJACENCY[c]?.length ?? 0) > 0
 );
 
 /** Walk the graph from `start` aiming for a route of `targetLen`. */
@@ -60,15 +60,87 @@ function walk(rand: () => number, start: string, targetLen: number): string[] | 
   return route;
 }
 
+/** Continent each supported country belongs to. Used for the easy-mode hint. */
+const CONTINENTS: Record<string, string> = {
+  // Africa
+  Algeria: 'Africa', Angola: 'Africa', Benin: 'Africa', Botswana: 'Africa',
+  'Burkina Faso': 'Africa', Burundi: 'Africa', Cameroon: 'Africa',
+  'Central African Republic': 'Africa', Chad: 'Africa', Comoros: 'Africa',
+  'Democratic Republic of the Congo': 'Africa',
+  'Republic of the Congo': 'Africa', Djibouti: 'Africa', Egypt: 'Africa',
+  'Equatorial Guinea': 'Africa', Eritrea: 'Africa', Eswatini: 'Africa',
+  Ethiopia: 'Africa', Gabon: 'Africa', Gambia: 'Africa', Ghana: 'Africa',
+  Guinea: 'Africa', 'Guinea-Bissau': 'Africa', 'Ivory Coast': 'Africa',
+  Kenya: 'Africa', Lesotho: 'Africa', Liberia: 'Africa', Libya: 'Africa',
+  Madagascar: 'Africa', Malawi: 'Africa', Mali: 'Africa', Mauritania: 'Africa',
+  Mauritius: 'Africa', Morocco: 'Africa', Mozambique: 'Africa',
+  Namibia: 'Africa', Niger: 'Africa', Nigeria: 'Africa', Rwanda: 'Africa',
+  Senegal: 'Africa', 'Sierra Leone': 'Africa', Somalia: 'Africa',
+  'South Africa': 'Africa', 'South Sudan': 'Africa', Sudan: 'Africa',
+  Tanzania: 'Africa', Togo: 'Africa', Tunisia: 'Africa', Uganda: 'Africa',
+  Zambia: 'Africa', Zimbabwe: 'Africa',
+
+  // Americas
+  'Antigua and Barbuda': 'Americas', Argentina: 'Americas', Bahamas: 'Americas',
+  Barbados: 'Americas', Belize: 'Americas', Bolivia: 'Americas',
+  Brazil: 'Americas', Canada: 'Americas', Chile: 'Americas',
+  Colombia: 'Americas', 'Costa Rica': 'Americas', Cuba: 'Americas',
+  Dominica: 'Americas', 'Dominican Republic': 'Americas', Ecuador: 'Americas',
+  'El Salvador': 'Americas', Grenada: 'Americas', Guatemala: 'Americas',
+  Guyana: 'Americas', Haiti: 'Americas', Honduras: 'Americas',
+  Jamaica: 'Americas', Mexico: 'Americas', Nicaragua: 'Americas',
+  Panama: 'Americas', Paraguay: 'Americas', Peru: 'Americas',
+  'Saint Kitts and Nevis': 'Americas', 'Saint Lucia': 'Americas',
+  'Saint Vincent and the Grenadines': 'Americas', Suriname: 'Americas',
+  'Trinidad and Tobago': 'Americas', 'United States': 'Americas',
+  Uruguay: 'Americas', Venezuela: 'Americas',
+
+  // Asia
+  Afghanistan: 'Asia', Armenia: 'Asia', Azerbaijan: 'Asia', Bahrain: 'Asia',
+  Bangladesh: 'Asia', Bhutan: 'Asia', Brunei: 'Asia', Cambodia: 'Asia',
+  China: 'Asia', Cyprus: 'Asia', Georgia: 'Asia', India: 'Asia',
+  Indonesia: 'Asia', Iran: 'Asia', Iraq: 'Asia', Israel: 'Asia',
+  Japan: 'Asia', Jordan: 'Asia', Kazakhstan: 'Asia', Kuwait: 'Asia',
+  Kyrgyzstan: 'Asia', Laos: 'Asia', Lebanon: 'Asia', Malaysia: 'Asia',
+  Maldives: 'Asia', Mongolia: 'Asia', Myanmar: 'Asia', Nepal: 'Asia',
+  'North Korea': 'Asia', Oman: 'Asia', Pakistan: 'Asia',
+  Philippines: 'Asia', Qatar: 'Asia', 'Saudi Arabia': 'Asia',
+  Singapore: 'Asia', 'South Korea': 'Asia', 'Sri Lanka': 'Asia',
+  Syria: 'Asia', Taiwan: 'Asia', Tajikistan: 'Asia', Thailand: 'Asia',
+  'Timor-Leste': 'Asia', Turkey: 'Asia', Turkmenistan: 'Asia',
+  'United Arab Emirates': 'Asia', Uzbekistan: 'Asia', Vietnam: 'Asia',
+  Yemen: 'Asia',
+
+  // Europe
+  Albania: 'Europe', Andorra: 'Europe', Austria: 'Europe', Belarus: 'Europe',
+  Belgium: 'Europe', 'Bosnia and Herzegovina': 'Europe', Bulgaria: 'Europe',
+  Croatia: 'Europe', 'Czech Republic': 'Europe', Denmark: 'Europe',
+  Estonia: 'Europe', Finland: 'Europe', France: 'Europe', Germany: 'Europe',
+  Greece: 'Europe', Hungary: 'Europe', Iceland: 'Europe', Ireland: 'Europe',
+  Italy: 'Europe', Kosovo: 'Europe', Latvia: 'Europe', Liechtenstein: 'Europe',
+  Lithuania: 'Europe', Luxembourg: 'Europe', Moldova: 'Europe', Monaco: 'Europe',
+  Montenegro: 'Europe', Netherlands: 'Europe', 'North Macedonia': 'Europe',
+  Norway: 'Europe', Poland: 'Europe', Portugal: 'Europe', Romania: 'Europe',
+  Russia: 'Europe', 'San Marino': 'Europe', Serbia: 'Europe',
+  Slovakia: 'Europe', Slovenia: 'Europe', Spain: 'Europe', Sweden: 'Europe',
+  Switzerland: 'Europe', Ukraine: 'Europe', 'United Kingdom': 'Europe',
+
+  // Oceania
+  Australia: 'Oceania', Fiji: 'Oceania', Kiribati: 'Oceania',
+  'Marshall Islands': 'Oceania', Micronesia: 'Oceania', Nauru: 'Oceania',
+  'New Zealand': 'Oceania', Palau: 'Oceania', 'Papua New Guinea': 'Oceania',
+  Samoa: 'Oceania', 'Solomon Islands': 'Oceania', Tonga: 'Oceania',
+  Tuvalu: 'Oceania', Vanuatu: 'Oceania',
+};
+
 /** Build a region label from the route stops. Used as the easy-mode hint. */
 function deriveRegion(route: string[]): string {
-  const lats = route.map((c) => COORDINATES[c]?.lat ?? 50);
-  const lngs = route.map((c) => COORDINATES[c]?.lng ?? 10);
-  const avgLat = lats.reduce((a, b) => a + b, 0) / lats.length;
-  const avgLng = lngs.reduce((a, b) => a + b, 0) / lngs.length;
-  const ns = avgLat > 55 ? 'Northern' : avgLat < 44 ? 'Southern' : 'Central';
-  const ew = avgLng > 22 ? 'Eastern' : avgLng < 5 ? 'Western' : '';
-  return ew ? `${ns} ${ew} Europe`.replace('Central ', '') : `${ns} Europe`;
+  const continents = Array.from(
+    new Set(route.map((c) => CONTINENTS[c] ?? 'Unknown'))
+  );
+  if (continents.length === 1) return continents[0];
+  if (continents.length === 2) return continents.join(' & ');
+  return 'Multiple continents';
 }
 
 function difficultyRatingFor(len: number): 1 | 2 | 3 {

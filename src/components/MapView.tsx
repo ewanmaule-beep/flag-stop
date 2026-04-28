@@ -1,5 +1,5 @@
-import { COORDINATES, projectCountry } from '../data/coordinates';
-import { COUNTRY_OUTLINES } from '../data/europeOutline';
+import { WORLD_COORDINATES, projectWorld } from '../data/worldCoordinates';
+import { WORLD_OUTLINES } from '../data/worldOutlines';
 import type { Feedback } from '../types';
 
 /**
@@ -27,8 +27,10 @@ interface MapViewProps {
   compact?: boolean;
 }
 
-const VIEW_W = 500;
-const VIEW_H = 380;
+// Must stay in sync with WORLD_MAP_BOUNDS in worldCoordinates.ts and the
+// projection settings in scripts/buildWorldOutlines.mjs.
+const VIEW_W = 1000;
+const VIEW_H = 500;
 
 const PIN_COLORS: Record<PinStatus, { fill: string; ring: string }> = {
   revealed: { fill: '#38bdf8', ring: 'rgba(56, 189, 248, 0.35)' },
@@ -39,18 +41,18 @@ const PIN_COLORS: Record<PinStatus, { fill: string; ring: string }> = {
 };
 
 export default function MapView({ pins, altPins, compact = false }: MapViewProps) {
-  const height = compact ? 220 : VIEW_H;
   const width = VIEW_W;
+  const height = VIEW_H;
 
-  const backgroundDots = Object.keys(COORDINATES).map((country) => {
-    const p = projectCountry(country, width, height);
+  const backgroundDots = Object.keys(WORLD_COORDINATES).map((country) => {
+    const p = projectWorld(country, width, height);
     if (!p) return null;
     return (
       <circle
         key={country}
         cx={p.x}
         cy={p.y}
-        r={1.6}
+        r={2.4}
         fill="rgba(148, 163, 184, 0.18)"
       />
     );
@@ -61,7 +63,7 @@ export default function MapView({ pins, altPins, compact = false }: MapViewProps
     options: { stroke: string; opacity: number }
   ) => {
     const points = routePins
-      .map((pin) => projectCountry(pin.country, width, height))
+      .map((pin) => projectWorld(pin.country, width, height))
       .filter((p): p is { x: number; y: number } => p !== null);
     if (points.length < 2) return null;
     const d = points
@@ -73,22 +75,30 @@ export default function MapView({ pins, altPins, compact = false }: MapViewProps
         fill="none"
         stroke={options.stroke}
         strokeOpacity={options.opacity}
-        strokeWidth={2}
+        strokeWidth={3}
         strokeLinecap="round"
         strokeLinejoin="round"
-        strokeDasharray="4 3"
+        strokeDasharray="6 4"
       />
     );
   };
 
+  // World map is 2:1 aspect. In compact mode we cap the rendered height
+  // via CSS so it doesn't dominate the in-game view; the SVG viewBox stays
+  // 1000x500 either way so country outlines render correctly.
+  const wrapperClass =
+    'w-full overflow-hidden rounded-xl bg-slate-950/60 ring-1 ring-white/5' +
+    (compact ? ' max-h-56' : '');
+
   return (
-    <div className="w-full overflow-hidden rounded-xl bg-slate-950/60 ring-1 ring-white/5">
+    <div className={wrapperClass}>
       <svg
         viewBox={`0 0 ${width} ${height}`}
         xmlns="http://www.w3.org/2000/svg"
+        preserveAspectRatio="xMidYMid meet"
         className="block w-full h-auto"
         role="img"
-        aria-label="Map of Europe with route stops"
+        aria-label="World map with route stops"
       >
         <defs>
           <pattern
@@ -108,13 +118,13 @@ export default function MapView({ pins, altPins, compact = false }: MapViewProps
         <rect width={width} height={height} fill="url(#map-grid)" />
 
         <g aria-hidden="true">
-          {Object.entries(COUNTRY_OUTLINES).map(([country, d]) => (
+          {Object.entries(WORLD_OUTLINES).map(([country, d]) => (
             <path
               key={country}
               d={d}
               fill="rgba(148, 163, 184, 0.10)"
               stroke="rgba(148, 163, 184, 0.35)"
-              strokeWidth={0.6}
+              strokeWidth={0.8}
               strokeLinejoin="round"
               fillRule="evenodd"
             />
@@ -130,25 +140,25 @@ export default function MapView({ pins, altPins, compact = false }: MapViewProps
           renderRoute(pins, { stroke: '#38bdf8', opacity: 0.85 })}
 
         {altPins?.map((pin, i) => {
-          const p = projectCountry(pin.country, width, height);
+          const p = projectWorld(pin.country, width, height);
           if (!p) return null;
           return (
             <g key={`alt-${i}-${pin.country}`}>
-              <circle cx={p.x} cy={p.y} r={6} fill="rgba(245, 158, 11, 0.18)" />
+              <circle cx={p.x} cy={p.y} r={9} fill="rgba(245, 158, 11, 0.18)" />
               <circle
                 cx={p.x}
                 cy={p.y}
-                r={3.5}
+                r={5.5}
                 fill="#f59e0b"
                 stroke="rgba(15, 23, 42, 0.9)"
-                strokeWidth={1}
+                strokeWidth={1.2}
               />
             </g>
           );
         })}
 
         {pins.map((pin, i) => {
-          const p = projectCountry(pin.country, width, height);
+          const p = projectWorld(pin.country, width, height);
           if (!p) return null;
           const colors = PIN_COLORS[pin.status];
           const showLabel =
@@ -156,21 +166,21 @@ export default function MapView({ pins, altPins, compact = false }: MapViewProps
             (pin.status === 'revealed' || pin.status === 'green');
           return (
             <g key={`pin-${i}-${pin.country}`}>
-              <circle cx={p.x} cy={p.y} r={9} fill={colors.ring} />
+              <circle cx={p.x} cy={p.y} r={13} fill={colors.ring} />
               <circle
                 cx={p.x}
                 cy={p.y}
-                r={5}
+                r={7.5}
                 fill={colors.fill}
                 stroke="rgba(15, 23, 42, 0.95)"
-                strokeWidth={1.5}
+                strokeWidth={1.8}
               />
               {showLabel && (
                 <text
                   x={p.x}
-                  y={p.y + 18}
+                  y={p.y + 24}
                   textAnchor="middle"
-                  fontSize="10"
+                  fontSize="14"
                   fontWeight="600"
                   fill="#e2e8f0"
                   style={{ paintOrder: 'stroke', stroke: 'rgba(2, 6, 23, 0.85)', strokeWidth: 3 }}

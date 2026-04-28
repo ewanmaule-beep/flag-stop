@@ -13,27 +13,71 @@ const TAG: Record<Difficulty, string> = {
   hard: 'Hard',
 };
 
-/**
- * Spoiler-free share text.
- * Example:
- *   Flag Stop · 2026-04-27 · 3/5 · M
- *   ⬜🟨🟩
- *   🟨🟩🟩
- *   🟩🟩🟩
- */
-export function buildShareText(args: {
+/** Best-effort live link for the deployed game. Falls back to a sensible default
+ * if window isn't available (e.g. SSR or test environments). */
+function gameLink(): string {
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin;
+  }
+  return 'https://flagstop.game';
+}
+
+interface DailyShareArgs {
+  kind: 'daily';
   dateKey: string;
   attempts: Attempt[];
   won: boolean;
   difficulty: Difficulty;
-}): string {
-  const { dateKey, attempts, won, difficulty } = args;
+  /** Current streak after recording today's result. Hidden when 0. */
+  currentStreak: number;
+}
+
+interface ArchiveShareArgs {
+  kind: 'archive';
+  archiveNumber: number;
+  attempts: Attempt[];
+  won: boolean;
+  difficulty: Difficulty;
+}
+
+export type ShareArgs = DailyShareArgs | ArchiveShareArgs;
+
+/**
+ * Spoiler-free share text.
+ *
+ * Daily example:
+ *   Flag Stop · 2026-04-27 · 3/5 · Medium
+ *   ⬜🟨🟩
+ *   🟨🟩🟩
+ *   🟩🟩🟩
+ *
+ *   Current streak: 4 days
+ *   Can you beat my route? https://flagstop.game
+ *
+ * Archive example:
+ *   Flag Stop Archive #12 · 4/5 · Hard
+ *   ...
+ *   Try a past puzzle: https://flagstop.game
+ */
+export function buildShareText(args: ShareArgs): string {
+  const { attempts, won, difficulty } = args;
   const score = won ? `${attempts.length}/${MAX_ATTEMPTS}` : `X/${MAX_ATTEMPTS}`;
-  const header = `Flag Stop · ${dateKey} · ${score} · ${TAG[difficulty]} mode`;
   const grid = attempts
     .map((a) => a.feedback.map((f) => SQUARE[f]).join(''))
     .join('\n');
-  return `${header}\n\n${grid}`;
+  const link = gameLink();
+
+  if (args.kind === 'archive') {
+    const header = `Flag Stop Archive #${args.archiveNumber} · ${score} · ${TAG[difficulty]}`;
+    return `${header}\n\n${grid}\n\nTry a past puzzle: ${link}`;
+  }
+
+  const header = `Flag Stop · ${args.dateKey} · ${score} · ${TAG[difficulty]}`;
+  const streakLine =
+    args.currentStreak >= 1
+      ? `\nCurrent streak: ${args.currentStreak} day${args.currentStreak === 1 ? '' : 's'}`
+      : '';
+  return `${header}\n\n${grid}${streakLine}\n\nCan you beat my route? ${link}`;
 }
 
 /** Try Web Share, fall back to clipboard. Returns 'shared' | 'copied' | 'failed'. */

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Difficulty, Puzzle } from '../types';
+import type { Stats } from '../lib/storage';
 import Flag from './Flag';
 import HowToPlay from './HowToPlay';
 
@@ -12,6 +13,8 @@ interface StartScreenProps {
   lastResult: 'won' | 'lost' | null;
   onViewResult: () => void;
   onPrivacy: () => void;
+  stats: Stats;
+  onOpenArchive: () => void;
 }
 
 const DIFFICULTIES: { id: Difficulty; label: string; hint: string }[] = [
@@ -29,6 +32,8 @@ export default function StartScreen({
   lastResult,
   onViewResult,
   onPrivacy,
+  stats,
+  onOpenArchive,
 }: StartScreenProps) {
   // Teaser is always start + end only, regardless of difficulty.
   // We don't want difficulty selection to leak info about today's puzzle.
@@ -43,7 +48,7 @@ export default function StartScreen({
           Flag <span className="text-sky-400">Stop</span>
         </h1>
         <p className="mt-2 text-slate-300 text-sm">
-          A daily route through Europe. Five tries. Same puzzle for everyone.
+          A daily route across the world. Five tries. Same puzzle for everyone.
         </p>
         <button
           type="button"
@@ -54,6 +59,27 @@ export default function StartScreen({
           <span>How to play</span>
         </button>
       </header>
+
+      {(stats.currentStreak > 0 || stats.maxStreak > 0) && (
+        <section className="rounded-2xl bg-slate-900/60 ring-1 ring-white/10 p-4 grid grid-cols-2 gap-3 text-center">
+          <div>
+            <div className="font-display font-bold text-2xl">
+              {stats.currentStreak}
+            </div>
+            <div className="text-[10px] uppercase tracking-widest text-slate-400">
+              Current streak
+            </div>
+          </div>
+          <div>
+            <div className="font-display font-bold text-2xl">
+              {stats.maxStreak}
+            </div>
+            <div className="text-[10px] uppercase tracking-widest text-slate-400">
+              Best streak
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="rounded-2xl bg-slate-900/60 ring-1 ring-white/10 p-5 backdrop-blur">
         <p className="text-xs uppercase tracking-widest text-slate-400 mb-3">
@@ -140,6 +166,13 @@ export default function StartScreen({
             {lastResult ? ` (${lastResult})` : ''}
           </button>
         )}
+        <button
+          type="button"
+          onClick={onOpenArchive}
+          className="w-full rounded-xl bg-slate-900/60 hover:bg-slate-800 ring-1 ring-white/10 text-slate-200 font-medium py-3"
+        >
+          Previous puzzles
+        </button>
       </div>
 
       <p className="text-center text-xs text-slate-500">

@@ -9,12 +9,18 @@ interface RouteDisplayProps {
   selectedBlank: number | null;
   lockedFeedback?: (Feedback | null)[] | null;
   onSelectBlank: (blankIdx: number) => void;
+  /**
+   * Whether to render the country-name caption under each tile. Defaults to
+   * true so existing callers don't change behaviour. GameScreen sets this to
+   * false on Medium/Hard so players have to recognise the flag.
+   */
+  showLabels?: boolean;
 }
 
 /**
- * Row of flag tiles separated by arrows. Each tile has a small country-name
- * caption underneath so players can read what each flag is even if they don't
- * recognise it by sight.
+ * Row of flag tiles separated by arrows. Each tile can optionally show a small
+ * country-name caption underneath. Captions are hidden on Medium/Hard so the
+ * player has to identify the flag without help.
  */
 export default function RouteDisplay({
   route,
@@ -24,6 +30,7 @@ export default function RouteDisplay({
   selectedBlank,
   lockedFeedback,
   onSelectBlank,
+  showLabels = true,
 }: RouteDisplayProps) {
   const visible = new Set(visibleIndexes);
   const blankToSlotIdx = new Map<number, number>();
@@ -36,7 +43,13 @@ export default function RouteDisplay({
 
         if (visible.has(i)) {
           return (
-            <RouteItem key={i} isLast={isLast} variant="revealed" country={name} />
+            <RouteItem
+              key={i}
+              isLast={isLast}
+              variant="revealed"
+              country={name}
+              showLabel={showLabels}
+            />
           );
         }
 
@@ -57,6 +70,7 @@ export default function RouteDisplay({
             variant={variant}
             country={placed ?? null}
             onClick={() => onSelectBlank(slotIdx)}
+            showLabel={showLabels}
           />
         );
       })}
@@ -80,11 +94,13 @@ function RouteItem({
   variant,
   country,
   onClick,
+  showLabel = true,
 }: {
   isLast: boolean;
   variant: Variant;
   country: string | null;
   onClick?: () => void;
+  showLabel?: boolean;
 }) {
   const interactive = variant !== 'revealed';
   // Caption shows the country name if we have one — empty (non-breaking
@@ -110,12 +126,14 @@ function RouteItem({
             <span className="text-slate-300 text-2xl font-bold">?</span>
           )}
         </button>
-        <span
-          className="text-[10px] leading-tight text-slate-300 text-center w-full truncate"
-          title={country ?? ''}
-        >
-          {caption}
-        </span>
+        {showLabel && (
+          <span
+            className="text-[10px] leading-tight text-slate-300 text-center w-full truncate"
+            title={country ?? ''}
+          >
+            {caption}
+          </span>
+        )}
       </div>
       {!isLast && (
         // Match the tile's vertical centre (tile is 64px, arrow ~24px).

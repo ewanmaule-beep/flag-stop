@@ -18,6 +18,14 @@ interface ResultScreenProps {
   dateKey: string;
   stats: Stats;
   onBackToStart: () => void;
+  /**
+   * True when the player just finished an archive puzzle. Archive plays do
+   * not affect streaks, so we hide the streak strip and use different share
+   * text. Defaults to false (daily play).
+   */
+  isArchive?: boolean;
+  /** Archive puzzle number, used in share text and the result header. */
+  archiveNumber?: number;
 }
 
 export default function ResultScreen({
@@ -29,6 +37,8 @@ export default function ResultScreen({
   dateKey,
   stats,
   onBackToStart,
+  isArchive = false,
+  archiveNumber,
 }: ResultScreenProps) {
   const wonViaAlternate =
     won && playerRoute !== null && isAlternateWin(puzzle, playerRoute);
@@ -54,7 +64,22 @@ export default function ResultScreen({
       : undefined;
 
   async function handleShare() {
-    const text = buildShareText({ dateKey, attempts, won, difficulty });
+    const text = isArchive && archiveNumber !== undefined
+      ? buildShareText({
+          kind: 'archive',
+          archiveNumber,
+          attempts,
+          won,
+          difficulty,
+        })
+      : buildShareText({
+          kind: 'daily',
+          dateKey,
+          attempts,
+          won,
+          difficulty,
+          currentStreak: stats.currentStreak,
+        });
     const result = await shareOrCopy(text);
     setShareState(result);
     window.setTimeout(() => setShareState('idle'), 2000);
@@ -64,7 +89,9 @@ export default function ResultScreen({
     <div className="flex flex-col gap-5 px-4 py-6 max-w-md mx-auto w-full pb-10">
       <header className="text-center mt-2">
         <p className="text-xs uppercase tracking-widest text-slate-400">
-          {dateKey} · {difficulty}
+          {isArchive && archiveNumber !== undefined
+            ? `Archive #${archiveNumber} · ${difficulty}`
+            : `${dateKey} · ${difficulty}`}
         </p>
         <h1 className="font-display font-extrabold text-3xl mt-1">
           {won ? 'Route complete' : 'Out of tries'}
@@ -72,6 +99,8 @@ export default function ResultScreen({
         <p className="text-slate-300 text-sm mt-1">
           {won
             ? `Solved in ${attempts.length} ${attempts.length === 1 ? 'try' : 'tries'}.`
+            : isArchive
+            ? 'Out of tries on this past puzzle.'
             : 'Better luck tomorrow.'}
         </p>
         {wonViaAlternate && (
@@ -80,6 +109,27 @@ export default function ResultScreen({
           </p>
         )}
       </header>
+
+      {!isArchive && (stats.currentStreak > 0 || stats.maxStreak > 0) && (
+        <section className="rounded-2xl bg-slate-900/60 ring-1 ring-white/10 p-4 grid grid-cols-2 gap-3 text-center">
+          <div>
+            <div className="font-display font-bold text-2xl">
+              {stats.currentStreak}
+            </div>
+            <div className="text-[10px] uppercase tracking-widest text-slate-400">
+              Current streak
+            </div>
+          </div>
+          <div>
+            <div className="font-display font-bold text-2xl">
+              {stats.maxStreak}
+            </div>
+            <div className="text-[10px] uppercase tracking-widest text-slate-400">
+              Best streak
+            </div>
+          </div>
+        </section>
+      )}
 
       {wonViaAlternate && playerRoute && (
         <section className="rounded-2xl bg-slate-900/60 ring-1 ring-amber-300/30 p-4 backdrop-blur">
@@ -167,7 +217,9 @@ export default function ResultScreen({
       <AdPlaceholder />
 
       <p className="text-center text-xs text-slate-500">
-        New route every day · come back tomorrow
+        {isArchive
+          ? 'Past puzzle · streak unaffected'
+          : 'New route every day · come back tomorrow'}
       </p>
     </div>
   );

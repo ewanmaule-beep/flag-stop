@@ -83,6 +83,15 @@ export function evaluateGuess(
   blankIndexes: number[],
   guess: (string | null)[]
 ): Feedback[] {
+  // If the player's full route is a valid border chain (canonical OR an
+  // alternate path through the graph), treat every slot as correct so
+  // alternate-route wins light up all green instead of being penalised
+  // against the canonical answer.
+  const fullRoute = buildFullRoute(puzzle, blankIndexes, guess);
+  if (fullRoute && isValidRoute(fullRoute)) {
+    return guess.map(() => 'green');
+  }
+
   const answers = blankIndexes.map((i) => puzzle.route[i]);
   const feedback: Feedback[] = guess.map(() => 'grey');
   const remaining = answers.slice();

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Attempt, Difficulty, Screen } from './types';
 import { getDailyPuzzle, getTodayKey } from './lib/dailyPuzzle';
+import { getArchivePuzzle } from './lib/archive';
 import {
   loadStats,
   saveStats,
@@ -10,11 +11,12 @@ import {
 import StartScreen from './components/StartScreen';
 import GameScreen from './components/GameScreen';
 import ResultScreen from './components/ResultScreen';
+import ArchiveScreen from './components/ArchiveScreen';
 import PrivacyPolicy from './components/PrivacyPolicy';
 
 export default function App() {
   const dateKey = useMemo(() => getTodayKey(), []);
-  const puzzle = useMemo(() => getDailyPuzzle(), []);
+  const dailyPuzzle = useMemo(() => getDailyPuzzle(), []);
 
   const [stats, setStats] = useState<Stats>(() => loadStats());
   const [screen, setScreen] = useState<Screen>('start');
@@ -22,6 +24,16 @@ export default function App() {
   const [activeAttempts, setActiveAttempts] = useState<Attempt[]>([]);
   const [won, setWon] = useState(false);
   const [playerRoute, setPlayerRoute] = useState<string[] | null>(null);
+  // null = playing the daily puzzle. A number = playing that archive entry.
+  const [archiveNumber, setArchiveNumber] = useState<number | null>(null);
+
+  // The puzzle currently being played: archive entry if one is selected,
+  // otherwise today's daily.
+  const puzzle = useMemo(
+    () =>
+      archiveNumber !== null ? getArchivePuzzle(archiveNumber) : dailyPuzzle,
+    [archiveNumber, dailyPuzzle]
+  );
 
   // If today is already completed, restore that state on first load.
   useEffect(() => {
@@ -45,11 +57,26 @@ export default function App() {
     : null;
 
   function handleStart() {
+    // Starting today's daily — clear any archive context and reset transient
+    // state so the GameScreen mounts fresh.
+    setArchiveNumber(null);
+    setActiveAttempts([]);
+    setWon(false);
+    setPlayerRoute(null);
+    setScreen('playing');
+  }
+
+  function handleStartArchive(num: number) {
+    setArchiveNumber(num);
+    setActiveAttempts([]);
+    setWon(false);
+    setPlayerRoute(null);
     setScreen('playing');
   }
 
   function handleViewResult() {
     if (todayRecord && todayRecord.status !== 'playing') {
+      setArchiveNumber(null);
       setActiveAttempts(todayRecord.attempts);
       setWon(todayRecord.status === 'won');
       setDifficulty(todayRecord.difficulty);
@@ -66,27 +93,40 @@ export default function App() {
     setActiveAttempts(attempts);
     setWon(didWin);
     setPlayerRoute(fullRoute);
-    const updated = recordResult(stats, dateKey, didWin, attempts.length, {
-      puzzleId: puzzle.id,
-      difficulty,
-      attempts,
-      status: didWin ? 'won' : 'lost',
-      playerRoute: fullRoute,
-    });
-    setStats(updated);
-    saveStats(updated);
+    // Archive plays are practice mode — they must NOT touch streaks or stats.
+    if (archiveNumber === null) {
+      const updated = recordResult(stats, dateKey, didWin, attempts.length, {
+        puzzleId: puzzle.id,
+        difficulty,
+        attempts,
+        status: didWin ? 'won' : 'lost',
+        playerRoute: fullRoute,
+      });
+      setStats(updated);
+      saveStats(updated);
+    }
     setScreen('result');
   }
 
+  function exitGame() {
+    // Back arrow during play returns to wherever the player came from.
+    setScreen(archiveNumber !== null ? 'archive' : 'start');
+  }
+
   function backToStart() {
+    setArchiveNumber(null);
     setScreen('start');
+  }
+
+  function backToArchive() {
+    setScreen('archive');
   }
 
   return (
     <div className="min-h-screen w-full">
       {screen === 'start' && (
         <StartScreen
-          puzzle={puzzle}
+          puzzle={dailyPuzzle}
           difficulty={difficulty}
           onChangeDifficulty={setDifficulty}
           onStart={handleStart}
@@ -94,13 +134,21 @@ export default function App() {
           lastResult={lastResult}
           onViewResult={handleViewResult}
           onPrivacy={() => setScreen('privacy')}
+          stats={stats}
+          onOpenArchive={() => setScreen('archive')}
+        />
+      )}
+      {screen === 'archive' && (
+        <ArchiveScreen
+          onPick={handleStartArchive}
+          onBack={() => setScreen('start')}
         />
       )}
       {screen === 'playing' && (
         <GameScreen
           puzzle={puzzle}
           difficulty={difficulty}
-          onExit={backToStart}
+          onExit={exitGame}
           onComplete={handleComplete}
         />
       )}
@@ -113,7 +161,11 @@ export default function App() {
           playerRoute={playerRoute}
           dateKey={dateKey}
           stats={stats}
-          onBackToStart={backToStart}
+          isArchive={archiveNumber !== null}
+          archiveNumber={archiveNumber ?? undefined}
+          onBackToStart={
+            archiveNumber !== null ? backToArchive : backToStart
+          }
         />
       )}
       {screen === 'privacy' && (
