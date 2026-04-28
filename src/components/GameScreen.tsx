@@ -217,6 +217,7 @@ export default function GameScreen({
           placedSet={placedSet}
           knowledge={knowledge}
           onPick={pickOption}
+          showLabels={difficulty !== 'hard'}
         />
       </section>
 

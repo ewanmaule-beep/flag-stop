@@ -7,11 +7,18 @@ interface OptionsListProps {
   knowledge: Record<string, 'green' | 'yellow' | 'grey' | undefined>;
   onPick: (country: string) => void;
   disabled?: boolean;
+  /**
+   * Whether to render the country-name caption under each option tile.
+   * Defaults to true. GameScreen sets this to false on Hard so the picker is
+   * flag-only.
+   */
+  showLabels?: boolean;
 }
 
 /**
  * Country picker — flag-dominant tiles in a 3-column grid.
- * Country name is a small caption underneath each flag.
+ * Country name is a small caption underneath each flag (Easy and Medium).
+ * Hard mode hides the captions for a flag-only picker.
  */
 export default function OptionsList({
   options,
@@ -19,6 +26,7 @@ export default function OptionsList({
   knowledge,
   onPick,
   disabled,
+  showLabels = true,
 }: OptionsListProps) {
   return (
     <div className="grid grid-cols-3 gap-2">
@@ -53,12 +61,14 @@ export default function OptionsList({
             }
           >
             <Flag country={name} size="w-14 h-9" rounded="rounded-md" />
-            <span
-              className="text-[11px] font-medium text-slate-100 leading-tight text-center w-full truncate"
-              title={name}
-            >
-              {name}
-            </span>
+            {showLabels && (
+              <span
+                className="text-[11px] font-medium text-slate-100 leading-tight text-center w-full truncate"
+                title={name}
+              >
+                {name}
+              </span>
+            )}
           </button>
         );
       })}
